@@ -1,4 +1,4 @@
-import { GrafanaWebhookPayload } from "./types";
+import { GrafanaWebhookPayload } from "./types.d";
 
 // Configuration - replace these with your actual values
 const FREE_MOBILE_USER_ID = process.env.FREE_MOBILE_USER_ID || '';
