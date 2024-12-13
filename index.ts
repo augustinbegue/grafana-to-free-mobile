@@ -1,19 +1,9 @@
-import { Serve } from "bun";
+import { GrafanaWebhookPayload } from "./types";
 
 // Configuration - replace these with your actual values
 const FREE_MOBILE_USER_ID = process.env.FREE_MOBILE_USER_ID || '';
 const FREE_MOBILE_PASS = process.env.FREE_MOBILE_PASS || '';
-
-// Interface for Grafana Webhook payload
-interface GrafanaWebhookPayload {
-  ruleName: string;
-  state: string;
-  message: string;
-  evalMatches?: Array<{
-    value: number;
-    metric: string;
-  }>;
-}
+const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3000;
 
 // Function to send SMS via Free Mobile API
 async function sendSMS(message: string): Promise<Response> {
@@ -53,10 +43,10 @@ async function processWebhook(payload: GrafanaWebhookPayload) {
   }
 }
 
-// Bun server handler
-export default {
-  port: process.env.PORT ? parseInt(process.env.PORT) : 3000,
-  async fetch(req: Request) {
+// Start the Bun server
+Bun.serve({
+  port: PORT,
+  fetch(req: Request) {
     const url = new URL(req.url);
 
     // Health check endpoint
@@ -66,25 +56,31 @@ export default {
 
     // Webhook endpoint
     if (req.method === 'POST' && url.pathname === '/webhook') {
-      try {
-        // Parse the incoming webhook payload
-        const payload: GrafanaWebhookPayload = await req.json();
+      return (async () => {
+        try {
+          // Parse the incoming webhook payload
+          const payload: GrafanaWebhookPayload = await req.json();
 
-        // Process the webhook
-        await processWebhook(payload);
+          // Process the webhook
+          await processWebhook(payload);
 
-        // Respond with success
-        return new Response('Webhook received and processed', { status: 200 });
-      } catch (error) {
-        console.error('Webhook error:', error);
-        return new Response('Error processing webhook', { status: 500 });
-      }
+          // Respond with success
+          return new Response('Webhook received and processed', { status: 200 });
+        } catch (error) {
+          console.error('Webhook error:', error);
+          return new Response('Error processing webhook', { status: 500 });
+        }
+      })();
     }
 
     // Not Found for other routes
     return new Response('Not Found', { status: 404 });
+  },
+  error(error) {
+    console.error('Server error:', error);
+    return new Response('Internal Server Error', { status: 500 });
   }
-} satisfies Serve;
+});
 
 // Logging server start
-console.log(`Grafana Webhook SMS Forwarder running on port ${process.env.PORT || 3000}`);
+console.log(`Grafana Webhook SMS Forwarder running on port ${PORT}`);
