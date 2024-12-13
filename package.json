@@ -1,0 +1,24 @@
+{
+  "name": "grafana-webhook-sms-forwarder",
+  "version": "1.0.0",
+  "description": "Receives Grafana webhooks and forwards them as SMS via Free Mobile API",
+  "type": "module",
+  "scripts": {
+    "start": "bun run index.ts",
+    "dev": "bun run --watch index.ts"
+  },
+  "keywords": [
+    "grafana",
+    "webhook",
+    "sms",
+    "alerts"
+  ],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "bun-types": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  }
+}
