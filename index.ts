@@ -34,7 +34,25 @@ async function sendSMS(message: string): Promise<Response> {
 // Function to process Grafana webhook
 async function processWebhook(payload: GrafanaWebhookPayload) {
   // Construct a meaningful SMS message
-  const smsMessage = `Alert: ${payload.ruleName} is in ${payload.state} state. ${payload.message}`;
+  console.log('Processing webhook:', payload);
+  let smsMessage = `${payload.title}`;
+  payload.alerts.forEach((alert) => {
+    smsMessage += `\n\n${alert.labels.alertname}: ${alert.annotations.summary}`;
+    smsMessage += `\nStatus: ${alert.status}`;
+    smsMessage += `\nDate: ${new Date(alert.startsAt).toLocaleString()}`;
+    smsMessage += '\nLabels:';
+    Object.keys(alert.labels)
+      .filter((key) => key !== 'alertname')
+      .forEach((key) => {
+        smsMessage += `\n- ${key}: ${alert.labels[key]}`;
+      });
+    if (alert.values) {
+      smsMessage += '\nValues:';
+      Object.keys(alert.values).forEach((key) => {
+        smsMessage += `\n- ${key}: ${alert.values[key]}`;
+      });
+    }
+  });
 
   try {
     await sendSMS(smsMessage);
