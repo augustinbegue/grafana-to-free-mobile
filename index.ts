@@ -1,35 +1,9 @@
 import { GrafanaWebhookPayload } from "./types.d";
 
-// Configuration - replace these with your actual values
-const FREE_MOBILE_USER_ID = process.env.FREE_MOBILE_USER_ID || '';
-const FREE_MOBILE_PASS = process.env.FREE_MOBILE_PASS || '';
+import { sendSms } from "./freemobile";
+import { handleMcp } from "./mcp";
+
 const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3000;
-
-// Function to send SMS via Free Mobile API
-async function sendSMS(message: string): Promise<Response> {
-  // Encode the message to handle special characters
-  const encodedMessage = encodeURIComponent(message);
-
-  const apiUrl = `https://smsapi.free-mobile.fr/sendmsg?user=${FREE_MOBILE_USER_ID}&pass=${FREE_MOBILE_PASS}&msg=${encodedMessage}`;
-
-  try {
-    const response = await fetch(apiUrl);
-
-    if (!response.ok) {
-      console.error('Failed to send SMS', {
-        status: response.status,
-        statusText: response.statusText
-      });
-      return response;
-    }
-
-    console.log('SMS sent successfully');
-    return response;
-  } catch (error) {
-    console.error('Error sending SMS:', error);
-    throw error;
-  }
-}
 
 // Function to process Grafana webhook
 async function processWebhook(payload: GrafanaWebhookPayload) {
@@ -55,21 +29,23 @@ async function processWebhook(payload: GrafanaWebhookPayload) {
   });
 
   try {
-    await sendSMS(smsMessage);
+    await sendSms(smsMessage, { label: 'grafana', bypassLimit: true });
   } catch (error) {
     console.error('Webhook processing failed:', error);
   }
 }
 
-// Start the Bun server
-Bun.serve({
-  port: PORT,
-  fetch(req: Request) {
+export function handle(req: Request): Response | Promise<Response> {
     const url = new URL(req.url);
 
     // Health check endpoint
     if (req.method === 'GET' && url.pathname === '/health') {
       return new Response('OK', { status: 200 });
+    }
+
+    // MCP endpoint (auth handled in handleMcp)
+    if (url.pathname === '/mcp') {
+      return handleMcp(req);
     }
 
     // Webhook endpoint
@@ -93,12 +69,16 @@ Bun.serve({
 
     // Not Found for other routes
     return new Response('Not Found', { status: 404 });
-  },
-  error(error) {
-    console.error('Server error:', error);
-    return new Response('Internal Server Error', { status: 500 });
-  }
-});
+}
 
-// Logging server start
-console.log(`Grafana Webhook SMS Forwarder running on port ${PORT}`);
+if (import.meta.main) {
+  Bun.serve({
+    port: PORT,
+    fetch: handle,
+    error(error) {
+      console.error('Server error:', error);
+      return new Response('Internal Server Error', { status: 500 });
+    }
+  });
+  console.log(`Grafana Webhook SMS Forwarder + MCP running on port ${PORT}`);
+}

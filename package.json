@@ -6,8 +6,10 @@
   "scripts": {
     "start": "bun run index.ts",
     "dev": "bun run --watch index.ts",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit",
     "docker:build": "docker build -t grafana-to-free-mobile --platform linux/amd64 .",
-    "docker:publish": "docker tag grafana-to-free-mobile:latest docker.hostag.fr/grafana-to-free-mobile:latest && docker push docker.hostag.fr/grafana-to-free-mobile:latest"
+    "docker:publish": "docker tag grafana-to-free-mobile:latest ghcr.io/augustinbegue/grafana-to-free-mobile:latest && docker push ghcr.io/augustinbegue/grafana-to-free-mobile:latest"
   },
   "keywords": [
     "grafana",
@@ -22,5 +24,9 @@
   },
   "peerDependencies": {
     "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "zod": "^4.6.7"
   }
 }
